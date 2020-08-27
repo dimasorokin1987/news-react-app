@@ -1,26 +1,51 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, {useState, useEffect} from 'react';
+import alanBtn from '@alan-ai/alan-sdk-web';
+import wordsToNumbers from 'words-to-numbers';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+import NewsCards from './components/NewsCards/NewsCards';
+import useStyles from './styles.js';
+
+const alanKey = 'c235170f280cecbfc14ffd86f37efd1f2e956eca572e1d8b807a3e2338fdd0dc/stage';
+
+const App = () => {
+    const [newsArticles, setNewsArticles] = useState([]);
+    const [activeArticle, setActiveArticle] = useState(-1);
+    const classes = useStyles();
+
+    useEffect(() => {
+        alanBtn({
+            key: alanKey,
+            onCommand: ({command, articles, number}) => {
+                if(command === 'newHeadlines'){
+                    setNewsArticles(articles);
+                    setActiveArticle(-1);
+                } else if(command === 'hightlight'){
+                    setActiveArticle(prevActiveArticle => prevActiveArticle + 1);
+                } else if(command === 'open'){
+                    const parsedNumber = String(number).length > 2
+                    ?wordsToNumbers(number, {fuzzy: true})
+                    :Number(number);
+                    console.log('open article: ', number, parsedNumber);
+
+                    if(parsedNumber <= 20){
+                        const article = articles[parsedNumber - 1];
+                        window.open(article.url, '_blank');
+                        alanBtn().playText('Opening...');
+                    }else{
+                        alanBtn().playText('Please, try again.');
+                    }
+                }
+            }
+        });
+    }, []);
+    return (
+        <div>
+            <div className={classes.logoContainer}>
+                <img src="https://alan.app/voice/images/previews/preview.jpg" className={classes.alanLogo} alt="alan logo" />
+            </div>
+            <NewsCards articles={newsArticles} activeArticle={activeArticle} />
+        </div>
+    );
+};
 
 export default App;
